@@ -23,6 +23,14 @@ on:
         description: 'Subtargets (comma-separated, e.g., "stm32mp1,mt7621")'
         required: true
         type: string
+      pkgarch:
+        description: 'Package architecture (e.g., "mipsel_24kc"). Leave empty for auto-detection.'
+        required: false
+        type: string
+      vermagic:
+        description: 'Kernel vermagic (e.g., "5.15.167-1-144de9e5c1a8813b724b14faa054d9f0"). Leave empty for auto-detection.'
+        required: false
+        type: string
 
 jobs:
   generate-config:
@@ -45,6 +53,8 @@ jobs:
             echo "VERSION=${{ inputs.version }}" >> $GITHUB_ENV
             echo "TARGETS=${{ inputs.targets }}" >> $GITHUB_ENV
             echo "SUBTARGETS=${{ inputs.subtargets }}" >> $GITHUB_ENV
+            echo "PKGARCH=${{ inputs.pkgarch }}" >> $GITHUB_ENV
+            echo "VERMAGIC=${{ inputs.vermagic }}" >> $GITHUB_ENV
           elif [ "${{ github.event_name }}" == "workflow_call" ]; then
             VERSION="${{ inputs.tag_name }}"
             echo "VERSION=${VERSION#v}" >> $GITHUB_ENV
@@ -57,7 +67,7 @@ jobs:
 
       - name: Generate Job Config
         id: generate-config
-        run: node index.js ${{ env.VERSION }} "${{ env.TARGETS }}" "${{ env.SUBTARGETS }}"
+        run: node index.js ${{ env.VERSION }} "${{ env.TARGETS }}" "${{ env.SUBTARGETS }}" "${{ env.PKGARCH }}" "${{ env.VERMAGIC }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
