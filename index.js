@@ -5,6 +5,8 @@ const core = require('@actions/core');
 const version = process.argv[2]; // Получение версии OpenWRT из аргумента командной строки
 const filterTargetsStr = process.argv[3] || ''; // Фильтр по targets (опционально, через запятую)
 const filterSubtargetsStr = process.argv[4] || ''; // Фильтр по subtargets (опционально, через запятую)
+const manualPkgarch = process.argv[5] || ''; // Ручное указание pkgarch (опционально)
+const manualVermagic = process.argv[6] || ''; // Ручное указание vermagic (опционально)
 
 // Преобразуем строки с запятыми в массивы
 const filterTargets = filterTargetsStr ? filterTargetsStr.split(',').map(t => t.trim()).filter(t => t) : [];
@@ -13,6 +15,13 @@ const filterSubtargets = filterSubtargetsStr ? filterSubtargetsStr.split(',').ma
 if (!version) {
   core.setFailed('Version argument is required');
   process.exit(1);
+}
+
+// Логирование режима работы
+if (manualPkgarch && manualVermagic) {
+  console.log(`Manual mode: pkgarch="${manualPkgarch}", vermagic="${manualVermagic}"`);
+} else {
+  console.log('Auto-detection mode: pkgarch and vermagic will be extracted from kernel_*.ipk');
 }
 
 const url = `https://downloads.openwrt.org/releases/${version}/targets/`;
@@ -52,6 +61,12 @@ async function getSubtargets(target) {
 }
 
 async function getDetails(target, subtarget) {
+  // Если pkgarch и vermagic указаны вручную, используем их
+  if (manualPkgarch && manualVermagic) {
+    return { vermagic: manualVermagic, pkgarch: manualPkgarch };
+  }
+
+  // Иначе извлекаем из kernel_*.ipk
   const packagesUrl = `${url}${target}/${subtarget}/packages/`;
   const $ = await fetchHTML(packagesUrl);
   let vermagic = '';
