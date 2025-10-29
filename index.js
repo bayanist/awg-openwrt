@@ -7,6 +7,7 @@ const filterTargetsStr = process.argv[3] || ''; // Фильтр по targets (о
 const filterSubtargetsStr = process.argv[4] || ''; // Фильтр по subtargets (опционально, через запятую)
 const manualPkgarch = process.argv[5] || ''; // Ручное указание pkgarch (опционально)
 const manualVermagic = process.argv[6] || ''; // Ручное указание vermagic (опционально)
+const kernelVersion = process.argv[7] || ''; // Полная версия ядра (опционально, например: 5.15.167-1-144de9e5c1a8813b724b14faa054d9f0)
 
 // Преобразуем строки с запятыми в массивы
 const filterTargets = filterTargetsStr ? filterTargetsStr.split(',').map(t => t.trim()).filter(t => t) : [];
@@ -17,9 +18,24 @@ if (!version) {
   process.exit(1);
 }
 
+// Извлекаем vermagic из полной версии ядра, если указана
+let extractedVermagic = manualVermagic;
+if (kernelVersion && !manualVermagic) {
+  // Извлекаем хеш из строки вида: 5.15.167-1-144de9e5c1a8813b724b14faa054d9f0
+  const match = kernelVersion.match(/\d+\.\d+\.\d+(?:-\d+)?-([a-f0-9]{32})/);
+  if (match) {
+    extractedVermagic = match[1];
+    console.log(`Extracted vermagic from kernel version: "${extractedVermagic}"`);
+  } else {
+    console.log(`Warning: Could not extract vermagic from kernel version: "${kernelVersion}"`);
+  }
+}
+
 // Логирование режима работы
-if (manualPkgarch && manualVermagic) {
-  console.log(`Manual mode: pkgarch="${manualPkgarch}", vermagic="${manualVermagic}"`);
+if (manualPkgarch && extractedVermagic) {
+  console.log(`Manual mode: pkgarch="${manualPkgarch}", vermagic="${extractedVermagic}"`);
+} else if (kernelVersion) {
+  console.log(`Kernel version mode: using kernel="${kernelVersion}"`);
 } else {
   console.log('Auto-detection mode: pkgarch and vermagic will be extracted from kernel_*.ipk');
 }
@@ -61,9 +77,9 @@ async function getSubtargets(target) {
 }
 
 async function getDetails(target, subtarget) {
-  // Если pkgarch и vermagic указаны вручную, используем их
-  if (manualPkgarch && manualVermagic) {
-    return { vermagic: manualVermagic, pkgarch: manualPkgarch };
+  // Если pkgarch и vermagic указаны вручную (или извлечены из kernel_version), используем их
+  if (manualPkgarch && extractedVermagic) {
+    return { vermagic: extractedVermagic, pkgarch: manualPkgarch };
   }
 
   // Иначе извлекаем из kernel_*.ipk
