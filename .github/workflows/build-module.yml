@@ -158,9 +158,38 @@ jobs:
           
           cd "$SDK_DIR"
           
-          # Update feeds to include LuCI
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
+          # Update feeds to include LuCI with retry mechanism
+          echo "Updating feeds (with retry on failure)..."
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          FEEDS_UPDATED=false
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES..."
+            
+            if timeout 300 ./scripts/feeds update -a 2>&1; then
+              echo "✅ Feeds updated successfully!"
+              FEEDS_UPDATED=true
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                echo "⚠️  Feed update failed, waiting 30 seconds before retry..."
+                sleep 30
+              else
+                echo "❌ Feed update failed after $MAX_RETRIES attempts"
+                echo "⚠️  Continuing with SDK built-in feeds (may be slightly outdated)"
+              fi
+            fi
+          done
+          
+          # Install feeds only if update succeeded
+          if [ "$FEEDS_UPDATED" = true ]; then
+            ./scripts/feeds install -a
+          else
+            echo "⚠️  Skipping feeds install due to update failure"
+            echo "ℹ️  SDK already contains necessary packages for AmneziaWG build"
+          fi
           
           # Copy current repository packages directly to package directory
           cp -r "$WORKSPACE_DIR/kmod-amneziawg" package/
