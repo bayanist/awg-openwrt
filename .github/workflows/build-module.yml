@@ -36,7 +36,11 @@ on:
         required: false
         type: string
       vermagic:
-        description: 'Kernel vermagic (e.g., "5.15.167-1-144de9e5c1a8813b724b14faa054d9f0"). Leave empty for auto-detection.'
+        description: 'Kernel vermagic hash only (e.g., "144de9e5c1a8813b724b14faa054d9f0"). Leave empty for auto-detection.'
+        required: false
+        type: string
+      kernel_version:
+        description: 'Full kernel version with hash (e.g., "5.15.167-1-144de9e5c1a8813b724b14faa054d9f0"). Vermagic will be extracted automatically. Leave empty for auto-detection.'
         required: false
         type: string
 
@@ -63,6 +67,7 @@ jobs:
             echo "SUBTARGETS=${{ inputs.subtargets }}" >> $GITHUB_ENV
             echo "PKGARCH=${{ inputs.pkgarch }}" >> $GITHUB_ENV
             echo "VERMAGIC=${{ inputs.vermagic }}" >> $GITHUB_ENV
+            echo "KERNEL_VERSION=${{ inputs.kernel_version }}" >> $GITHUB_ENV
           elif [ "${{ github.event_name }}" == "workflow_call" ]; then
             VERSION="${{ inputs.tag_name }}"
             echo "VERSION=${VERSION#v}" >> $GITHUB_ENV
@@ -77,7 +82,7 @@ jobs:
 
       - name: Generate Job Config
         id: generate-config
-        run: node index.js ${{ env.VERSION }} "${{ env.TARGETS }}" "${{ env.SUBTARGETS }}" "${{ env.PKGARCH }}" "${{ env.VERMAGIC }}"
+        run: node index.js ${{ env.VERSION }} "${{ env.TARGETS }}" "${{ env.SUBTARGETS }}" "${{ env.PKGARCH }}" "${{ env.VERMAGIC }}" "" "${{ env.KERNEL_VERSION }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
