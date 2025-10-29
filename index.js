@@ -139,6 +139,7 @@ async function main() {
           subtarget,
           vermagic,
           pkgarch,
+          kernel_version: kernelVersion || '', // Передаем полную версию ядра, если указана
         });
       }
     }
