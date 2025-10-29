@@ -32,15 +32,15 @@ on:
         required: true
         type: string
       pkgarch:
-        description: 'Package architecture (e.g., "mipsel_24kc"). Leave empty for auto-detection.'
+        description: 'Package architecture (e.g., "mipsel_24kc"). Leave empty for auto-detection. Get from: cat /etc/openwrt_release | grep DISTRIB_ARCH'
         required: false
         type: string
       vermagic:
-        description: 'Kernel vermagic hash only (e.g., "144de9e5c1a8813b724b14faa054d9f0"). Leave empty for auto-detection.'
+        description: 'Kernel vermagic hash only (e.g., "144de9e5c1a8813b724b14faa054d9f0"). For advanced users. Leave empty if using kernel_version or auto-detection.'
         required: false
         type: string
       kernel_version:
-        description: 'Full kernel version with hash (e.g., "5.15.167-1-144de9e5c1a8813b724b14faa054d9f0"). Vermagic will be extracted automatically. Leave empty for auto-detection.'
+        description: '🆕 RECOMMENDED: Full kernel version (e.g., "5.15.167-1-144de9e5c1a8813b724b14faa054d9f0"). Get from: opkg list-installed | grep "^kernel ". Leave empty for auto-detection.'
         required: false
         type: string
 
@@ -200,6 +200,57 @@ jobs:
           
           echo "Build completed. Checking for built packages..."
           find bin/ -name "*.ipk" | grep -E "(amneziawg|luci-proto-amneziawg|luci-i18n-amneziawg)" | head -10
+
+      - name: Patch kernel dependency if custom kernel_version specified
+        if: matrix.build_env.kernel_version != ''
+        run: |
+          # Find SDK directory
+          SDK_DIR=$(find . -maxdepth 1 -name "openwrt-sdk-*" -type d | head -n1)
+          cd "$SDK_DIR"
+          
+          echo "Custom kernel version specified: ${{ matrix.build_env.kernel_version }}"
+          echo "Patching kmod-amneziawg to depend on kernel = ${{ matrix.build_env.kernel_version }}"
+          
+          # Find the kmod-amneziawg package
+          KMOD_IPK=$(find bin/targets -name "kmod-amneziawg_*.ipk" | head -n1)
+          
+          if [ -z "$KMOD_IPK" ]; then
+            echo "kmod-amneziawg package not found, skipping patch"
+            exit 0
+          fi
+          
+          echo "Found package: $KMOD_IPK"
+          
+          # Create temp directory
+          TEMP_DIR=$(mktemp -d)
+          cd "$TEMP_DIR"
+          
+          # Extract the IPK
+          ar x "$SDK_DIR/$KMOD_IPK"
+          
+          # Extract control.tar.gz
+          tar -xzf control.tar.gz
+          
+          # Patch the control file - replace kernel dependency
+          sed -i "s/Depends: kernel (= [^)]*)/Depends: kernel (= ${{ matrix.build_env.kernel_version }})/" control
+          
+          echo "Patched control file:"
+          cat control | grep "Depends:"
+          
+          # Repack control.tar.gz
+          tar -czf control.tar.gz control
+          
+          # Repack IPK
+          ar r package.ipk debian-binary control.tar.gz data.tar.gz
+          
+          # Replace original package
+          mv package.ipk "$SDK_DIR/$KMOD_IPK"
+          
+          # Cleanup
+          cd "$SDK_DIR"
+          rm -rf "$TEMP_DIR"
+          
+          echo "Kernel dependency patched successfully!"
 
       - name: Prepare artifacts
         run: |
