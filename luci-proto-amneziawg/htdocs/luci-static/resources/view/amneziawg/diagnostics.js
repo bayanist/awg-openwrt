@@ -189,14 +189,14 @@ function checkDpi(test, resultElement, onComplete) {
 	var t0 = performance.now();
 	var testId = test.id;
 	
-	resultElement.innerHTML = '<span style="color: #0066cc;">⏳ Checking...</span>';
+	resultElement.textContent = '⏳ Checking...';
 	
 	var timeoutId = setTimeout(function() {
 		var statusCode = httpCodes[testId];
 		var reason = statusCode ? 'READ' : 'CONN';
 		var duration = timeElapsed(t0);
 		testResults[testId] = { status: 'detected', duration: duration, reason: reason };
-		resultElement.innerHTML = '<span style="color: #cc0000;">❌ Detected' + (statusCode ? '❗' : '*❗') + '</span>';
+		resultElement.textContent = '❌ Detected' + (statusCode ? '❗' : '*❗') + ' (' + duration + ')';
 		if (onComplete) onComplete();
 	}, TIMEOUT_MS);
 	
@@ -213,7 +213,7 @@ function checkDpi(test, resultElement, onComplete) {
 			clearTimeout(timeoutId);
 			var duration = timeElapsed(t0);
 			testResults[testId] = { status: 'warning', duration: duration };
-			resultElement.innerHTML = '<span style="color: #ff6600;">⚠ No stream</span>';
+			resultElement.textContent = '⚠️ No stream (' + duration + ')';
 			if (onComplete) onComplete();
 			return;
 		}
@@ -229,7 +229,7 @@ function checkDpi(test, resultElement, onComplete) {
 					var duration = timeElapsed(t0);
 					if (!ok) {
 						testResults[testId] = { status: 'warning', duration: duration };
-						resultElement.innerHTML = '<span style="color: #ff6600;">⚠ Possibly detected</span>';
+						resultElement.textContent = '⚠️ Possibly detected (' + duration + ')';
 					}
 					if (onComplete) onComplete();
 					return;
@@ -243,7 +243,7 @@ function checkDpi(test, resultElement, onComplete) {
 					ok = true;
 					var duration = timeElapsed(t0);
 					testResults[testId] = { status: 'success', duration: duration };
-					resultElement.innerHTML = '<span style="color: #00cc00;">✅ Not detected</span>';
+					resultElement.textContent = '✅ Not detected (' + duration + ')';
 					if (onComplete) onComplete();
 					return;
 				}
@@ -253,7 +253,7 @@ function checkDpi(test, resultElement, onComplete) {
 				clearTimeout(timeoutId);
 				var duration = timeElapsed(t0);
 				testResults[testId] = { status: 'error', duration: duration };
-				resultElement.innerHTML = '<span style="color: #cc0000;">❌ Detected</span>';
+				resultElement.textContent = '❌ Detected (' + duration + ')';
 				if (onComplete) onComplete();
 			});
 		}
@@ -268,10 +268,10 @@ function checkDpi(test, resultElement, onComplete) {
 		if (error.name === 'AbortError') {
 			var reason = statusCode ? 'READ' : 'CONN';
 			testResults[testId] = { status: 'detected', duration: duration, reason: reason };
-			resultElement.innerHTML = '<span style="color: #cc0000;">❌ Detected' + (statusCode ? '❗' : '*❗') + '</span>';
+			resultElement.textContent = '❌ Detected' + (statusCode ? '❗' : '*❗') + ' (' + duration + ')';
 		} else {
 			testResults[testId] = { status: 'error', duration: duration };
-			resultElement.innerHTML = '<span style="color: #ff6600;">⚠ Failed</span>';
+			resultElement.textContent = '⚠️ Failed (' + duration + ')';
 		}
 		if (onComplete) onComplete();
 	});
@@ -286,7 +286,7 @@ function runAllTests() {
 	
 	var statusElement = document.getElementById('test-status');
 	if (statusElement) {
-		statusElement.innerHTML = '<span style="color: #0066cc; font-weight: bold;">⏳ Checking...</span>';
+		statusElement.textContent = '⏳ Checking...';
 	}
 	
 	var resultElements = document.querySelectorAll('.diagnostic-result');
@@ -321,7 +321,7 @@ function runAllTests() {
 									successCount++;
 								}
 							}
-							statusElement.innerHTML = '<span style="color: #00cc00; font-weight: bold;">✅ Ready ⚡ (' + successCount + '/' + totalTests + ' passed)</span>';
+							statusElement.textContent = '✅ Ready (' + successCount + '/' + totalTests + ' passed)';
 						}
 					}
 				});
@@ -338,61 +338,51 @@ function renderDiagnosticsTab() {
 	diagnosticTests.forEach(function(test) {
 		for (var i = 0; i < (test.times || 1); i++) {
 			var testId = (test.times > 1) ? test.id + '@' + i : test.id;
-			testRows.push(E('tr', [
-				E('td', [ 
+			testRows.push(E('tr', { 'class': 'tr' }, [
+				E('td', { 'class': 'td left' }, [ 
 					E('strong', [ testId ])
 				]),
-				E('td', [ test.provider ]),
-				E('td', { 'class': 'diagnostic-result' }, [ 
-					E('span', { 'style': 'color: #999;' }, [ '—' ]) 
-				])
+				E('td', { 'class': 'td left' }, [ test.provider ]),
+				E('td', { 'class': 'td left diagnostic-result' }, [ '—' ])
 			]));
 		}
 	});
 
 	return E('div', { 'id': 'diagnostics-tab' }, [
 		E('div', { 'class': 'cbi-section' }, [
-			E('div', { 'style': 'margin-bottom: 1.5em; padding: 15px; background: #f8f8f8; border-radius: 6px;' }, [
-				E('div', { 'style': 'display: flex; justify-content: space-between; align-items: center;' }, [
-					E('div', [
-						E('strong', { 'style': 'font-size: 16px;' }, [ _('Start Status: ') ]),
-						E('span', { 'id': 'test-status', 'style': 'font-size: 16px;' }, [
-							E('span', { 'style': 'color: #00cc00; font-weight: bold;' }, [ '✅ Ready ⚡' ])
-						])
-					]),
-					E('button', {
-						'class': 'cbi-button cbi-button-action',
-						'style': 'padding: 10px 20px;',
-						'click': runAllTests
-					}, [ _('🔍 Start Testing') ])
-				])
-			]),
-			E('h3', [ _('DPI Detection Results') ]),
-			E('p', { 'style': 'margin-bottom: 1em;' }, [ 
-				_('Testing connectivity to various servers to detect Deep Packet Inspection (DPI) blocking.') 
-			]),
 			E('div', { 'class': 'cbi-section-node' }, [
-				E('table', { 'class': 'table', 'style': 'width: 100%;' }, [
-					E('thead', [
-						E('tr', [
-							E('th', { 'style': 'width: 15%;' }, [ '#' ]),
-							E('th', { 'style': 'width: 35%;' }, [ _('Provider') ]),
-							E('th', { 'style': 'width: 50%;' }, [ _('DPI [tcp 16-20] Status') ])
-						])
-					]),
-					E('tbody', testRows)
+				E('div', { 'style': 'margin-bottom: 1em;' }, [
+					E('strong', [ _('Status: ') ]),
+					E('span', { 'id': 'test-status' }, [ '✅ Ready' ]),
+					E('span', { 'style': 'margin-left: 1em;' }, [
+						E('button', {
+							'class': 'cbi-button cbi-button-action',
+							'click': runAllTests
+						}, [ _('Start Testing') ])
+					])
+				]),
+				E('p', [ 
+					_('Testing connectivity to various servers to detect Deep Packet Inspection (DPI) blocking.') 
 				])
 			])
 		]),
-		E('div', { 'class': 'cbi-section', 'style': 'margin-top: 2em;' }, [
-			E('h3', [ _('💡 Recommendations') ]),
-			E('div', { 'class': 'cbi-section-node' }, [
-				E('ul', { 'style': 'line-height: 1.8;' }, [
-					E('li', [ _('✅ Not detected - Connection is working normally') ]),
-					E('li', [ _('❌ Detected - DPI blocking detected, use AmneziaWG obfuscation') ]),
-					E('li', [ _('⚠ Timeout - Server may be unreachable or blocked') ]),
-					E('li', [ _('Configure AmneziaWG parameters: Jc, Jmin, Jmax, S1, S2, H1-H4 for better obfuscation') ])
+		E('table', { 'class': 'table' }, [
+			E('thead', [
+				E('tr', { 'class': 'tr' }, [
+					E('th', { 'class': 'th' }, [ '#' ]),
+					E('th', { 'class': 'th' }, [ _('Provider') ]),
+					E('th', { 'class': 'th' }, [ _('Status') ])
 				])
+			]),
+			E('tbody', testRows)
+		]),
+		E('div', { 'class': 'cbi-section' }, [
+			E('h3', [ _('Recommendations') ]),
+			E('ul', [
+				E('li', [ '✅ ', _('Not detected - Connection is working normally') ]),
+				E('li', [ '❌ ', _('Detected - DPI blocking detected, use AmneziaWG obfuscation') ]),
+				E('li', [ '⚠️ ', _('Timeout - Server may be unreachable or blocked') ]),
+				E('li', [ _('Configure AmneziaWG parameters: Jc, Jmin, Jmax, S1, S2, H1-H4 for better obfuscation') ])
 			])
 		])
 	]);
@@ -401,77 +391,78 @@ function renderDiagnosticsTab() {
 return view.extend({
 	render: function() {
 		var container = E('div', { 'class': 'cbi-map' }, [
-			E('h2', [ _('AmneziaWG Диагностика и Статус') ]),
+			E('h2', [ _('AmneziaWG') ]),
 			E('div', { 'class': 'cbi-map-descr' }, [
-				_('Диагностика подключения и просмотр активных AmneziaWG соединений')
+				_('DPI diagnostics and active connections monitoring')
 			])
 		]);
 
-		var tabContainer = E('div', { 'class': 'cbi-tabmenu' }, [
-			E('ul', [
-				E('li', { 
-					'class': 'cbi-tab',
-					'data-tab': 'diagnostics',
-					'click': function(ev) {
-						switchTab('diagnostics');
-					}
-				}, [
-					E('a', { 'href': '#' }, [ _('Диагностика') ])
-				]),
-				E('li', { 
-					'class': 'cbi-tab',
-					'data-tab': 'status',
-					'click': function(ev) {
-						switchTab('status');
-					}
-				}, [
-					E('a', { 'href': '#' }, [ _('Активные подключения') ])
-				])
-			])
-		]);
-
+		var tabContainer = E('div', { 'class': 'cbi-tabmenu' });
 		var contentContainer = E('div', { 'id': 'tab-content' });
 
-		container.appendChild(tabContainer);
-		container.appendChild(contentContainer);
-
 		function switchTab(tabName) {
-			// Обновляем активную вкладку
-			var tabs = tabContainer.querySelectorAll('.cbi-tab');
-			tabs.forEach(function(tab) {
-				if (tab.getAttribute('data-tab') === tabName) {
-					tab.classList.add('cbi-tab-active');
-				} else {
-					tab.classList.remove('cbi-tab-active');
-				}
-			});
+			// Очистить старые вкладки
+			dom.content(tabContainer, null);
+			
+			// Создать вкладки
+			var diagnosticsTab = E('li', { 
+				'class': tabName === 'diagnostics' ? 'cbi-tab cbi-tab-active' : 'cbi-tab'
+			}, [
+				E('a', { 
+					'href': '#',
+					'click': function(ev) {
+						ev.preventDefault();
+						switchTab('diagnostics');
+					}
+				}, [ _('Diagnostics') ])
+			]);
+			
+			var statusTab = E('li', { 
+				'class': tabName === 'status' ? 'cbi-tab cbi-tab-active' : 'cbi-tab'
+			}, [
+				E('a', { 
+					'href': '#',
+					'click': function(ev) {
+						ev.preventDefault();
+						switchTab('status');
+					}
+				}, [ _('Active Connections') ])
+			]);
+			
+			tabContainer.appendChild(diagnosticsTab);
+			tabContainer.appendChild(statusTab);
 
-			// Обновляем содержимое
+			// Отобразить контент
 			if (tabName === 'diagnostics') {
 				dom.content(contentContainer, renderDiagnosticsTab());
 			} else if (tabName === 'status') {
-				// Загружаем данные статуса
 				callgetAwgInstances().then(function(ifaces) {
 					dom.content(contentContainer, renderStatusTab(ifaces));
 				});
 			}
 		}
 
-		// Показываем вкладку диагностики по умолчанию
+		container.appendChild(tabContainer);
+		container.appendChild(contentContainer);
+
+		// Инициализация первой вкладки
 		setTimeout(function() {
 			switchTab('diagnostics');
 		}, 100);
 
-		// Запускаем опрос для вкладки статуса
+		// Обновление статуса каждые 5 секунд
 		poll.add(function() {
 			var activeTab = tabContainer.querySelector('.cbi-tab-active');
-			if (activeTab && activeTab.getAttribute('data-tab') === 'status') {
-				return callgetAwgInstances().then(function(ifaces) {
-					var statusTab = document.getElementById('status-tab');
-					if (statusTab) {
-						dom.content(contentContainer, renderStatusTab(ifaces));
-					}
-				});
+			if (activeTab) {
+				var tabLink = activeTab.querySelector('a');
+				if (tabLink && tabLink.textContent.indexOf('Active') !== -1) {
+					return callgetAwgInstances().then(function(ifaces) {
+						var statusTab = document.getElementById('status-tab');
+						if (statusTab) {
+							dom.content(contentContainer, renderStatusTab(ifaces));
+						}
+					});
+				}
 			}
 			return Promise.resolve();
 		}, 5);
