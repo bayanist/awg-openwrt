@@ -1,10 +1,22 @@
 {
 	"admin/status/amneziawg": {
-		"title": "AmneziaWG",
+		"title": "AmneziaWG Status",
 		"order": 92,
 		"action": {
 			"type": "view",
 			"path": "amneziawg/status"
+		},
+		"depends": {
+			"acl": [ "luci-proto-amneziawg" ],
+			"uci": { "network": true }
+		}
+	},
+	"admin/status/amneziawg-diagnostics": {
+		"title": "AmneziaWG Diagnostics",
+		"order": 93,
+		"action": {
+			"type": "view",
+			"path": "amneziawg/diagnostics"
 		},
 		"depends": {
 			"acl": [ "luci-proto-amneziawg" ],
