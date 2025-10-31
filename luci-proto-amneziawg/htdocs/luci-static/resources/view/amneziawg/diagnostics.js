@@ -368,7 +368,7 @@ function renderDiagnosticsTab() {
 		]),
 		E('table', { 'class': 'table' }, [
 			E('thead', [
-				E('tr', { 'class': 'tr' }, [
+				E('tr', { 'class': 'tr table-titles' }, [
 					E('th', { 'class': 'th' }, [ '#' ]),
 					E('th', { 'class': 'th' }, [ _('Provider') ]),
 					E('th', { 'class': 'th' }, [ _('Status') ])
